@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_SITE_URL, PUBLIC_ROUTES, buildRobots, buildSitemap, resolveSiteUrl } from "@/lib/site";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
@@ -49,3 +49,25 @@ describe("DEFAULT_SITE_URL", () => {
     expect(DEFAULT_SITE_URL).toBe("https://ab-testing.bookchaowalit.com");
   });
 });
+
+describe("canonical link", () => {
+  it("is the same URL the sitemap lists, base path included", async () => {
+    // A relative "/" resolves against metadataBase to ".../app/", while the sitemap lists ".../app" (no slash).
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test/app/");
+    vi.doMock("next/font/google", () => ({ Geist: () => ({ variable: "font" }) }));
+    vi.doMock("@/app/globals.css", () => ({}));
+    try {
+      const { metadata } = await import("@/app/layout");
+      const site = await import("@/lib/site");
+      expect(String(metadata.alternates?.canonical)).toBe("https://example.test/app");
+      expect(site.buildSitemap()[0].url).toBe("https://example.test/app");
+    } finally {
+      vi.unstubAllEnvs();
+      vi.doUnmock("next/font/google");
+      vi.doUnmock("@/app/globals.css");
+      vi.resetModules();
+    }
+  });
+});
+

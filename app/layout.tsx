@@ -14,7 +14,8 @@ export const metadata: Metadata = {
   authors: [{ name: "Bookchaowalit", url: "https://bookchaowalit.com" }],
   creator: "Bookchaowalit",
   metadataBase: new URL(SITE_URL),
-  alternates: { canonical: "/" },
+  // SITE_URL itself, as sitemap.xml lists it: "/" would resolve to a trailing-slash URL under a base path.
+  alternates: { canonical: SITE_URL },
   openGraph: { type: "website", title: "A/B Testing | Bookchaowalit", description: DESCRIPTION, siteName: "Bookchaowalit" },
   robots: { index: true, follow: true },
 };
