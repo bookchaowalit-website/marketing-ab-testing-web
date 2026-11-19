@@ -1,4 +1,4 @@
-# Split Room (A/B testing simulator) — Product truth
+# A/B Testing (split-test bench) — Product truth
 
 > Inferred from the code and copy (no user interview). Checked against the portfolio card claims review
 > (`portfolio-site-web/docs/audits/CARD-CLAIMS-REVIEW-2026-10.md`, row `ab-testing`, evidence Live→Prototype) on
@@ -17,8 +17,8 @@ A portfolio visitor who wants to see how weighted allocation and conversion rate
 1. Three seed variants (Control, Signal, Proof) with weights 42/33/25; a slider per variant changes its weight, and
    the header shows the total allocation (it warns when it is not 100%).
 2. "Simulate one visit" and "Run 50 visits" add exposures by weighted random selection (`Math.random`) in the browser.
-3. "+ conversion" records one conversion on a variant; the readout shows total exposures, conversions, overall rate
-   and the variant with the highest rate. "Reset seed" restores the seed.
+3. "Add conversion" records one conversion on a variant; the readout shows total exposures, conversions, overall rate
+   and the variant with the highest rate ("—" with no conversions or a tie). "Reset to sample" restores the seed.
 4. The experiment is saved in `localStorage` and restored on reload; corrupt saved data is ignored and the seed is
    used.
 5. `/api/mcp` answers JSON-RPC with `get_seed_experiment`, `summarize` (rates, totals, leader for given variants) and
@@ -30,7 +30,7 @@ A portfolio visitor who wants to see how weighted allocation and conversion rate
 - No variant management on real pages, no automatic traffic splitting, no use across any number of live pages.
 - No statistical significance engine; the page says so ("does not represent real audience behavior, statistical
   significance, or a deployed experiment").
-- No real visitors, accounts, sync or analytics beyond Vercel Analytics and Speed Insights on this page itself.
+- No real visitors, accounts, sync or analytics (Vercel Analytics and Speed Insights were removed 2026-11-19).
 
 ## Live URL and deploy state
 

@@ -1,19 +1,28 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Manrope } from "next/font/google";
+import { Geist } from "next/font/google";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 
-const roomSans = Manrope({ variable: "--font-room-sans", subsets: ["latin"] });
-const roomMono = JetBrains_Mono({ variable: "--font-room-mono", subsets: ["latin"] });
+// The font variable sits on <html>: the Dashboard shell tokens live on :root and read it from there.
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+
+const DESCRIPTION = "Weight three message variants, simulate visits and read conversion rates. A local bench in your browser, not a deployed experiment.";
 
 export const metadata: Metadata = {
-  title: "Split Room — Local A/B experiment bench",
-  description: "Simulate weighted variants and inspect conversion rates locally.",
-  metadataBase: new URL("https://ab-testing.bookchaowalit.com"),
-  alternates: { canonical: "https://ab-testing.bookchaowalit.com" },
+  title: "A/B Testing | Bookchaowalit",
+  description: DESCRIPTION,
+  authors: [{ name: "Bookchaowalit", url: "https://bookchaowalit.com" }],
+  creator: "Bookchaowalit",
+  metadataBase: new URL(SITE_URL),
+  alternates: { canonical: "/" },
+  openGraph: { type: "website", title: "A/B Testing | Bookchaowalit", description: DESCRIPTION, siteName: "Bookchaowalit" },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" className={`${roomSans.variable} ${roomMono.variable}`}><body><Analytics /><SpeedInsights />{children}</body></html>;
+  return (
+    <html lang="en" className={geistSans.variable}>
+      <body>{children}</body>
+    </html>
+  );
 }

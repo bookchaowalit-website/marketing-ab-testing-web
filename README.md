@@ -1,7 +1,7 @@
-# Split Room (A/B testing simulator)
+# A/B Testing (split-test bench)
 
 A local A/B experiment bench: three seed variants with traffic weights, a weighted random visit simulator, a
-manual "+ conversion" button per variant and a readout (exposures, conversions, overall rate, current lead). State is
+manual "Add conversion" button per variant and a readout (exposures, conversions, overall rate, current lead). State is
 kept in this browser's `localStorage`. It is a simulator, not an experiment platform.
 
 Live: https://ab-testing.bookchaowalit.com (deployed by Vercel CLI; it can lag `main`, see `PRODUCT.md`).
@@ -9,7 +9,7 @@ Live: https://ab-testing.bookchaowalit.com (deployed by Vercel CLI; it can lag `
 ## What it does not do
 
 - No real pages, visitors or traffic splitting; nothing is sent anywhere.
-- No statistical significance test: "current lead" is simply the highest conversion rate.
+- No statistical significance test: "current lead" is simply the highest conversion rate, and it shows "—" when there are no conversions yet or the best rate is tied.
 - No account, sync or sharing. Clearing site data resets the experiment.
 
 ## Run
@@ -40,4 +40,6 @@ scan on every push and PR to `main`.
 - `app/api/mcp/route.ts`: stateless JSON-RPC endpoint with `get_seed_experiment`, `summarize` and `simulate`.
 - `lib/sentry.ts` + `instrumentation*.ts`: error reporting to Sentry, errors only, personal data stripped; off when
   `NEXT_PUBLIC_SENTRY_DSN` is unset.
-- `app/more-projects/page.tsx`: shared portfolio link page (copied per repository, not a package).
+- `/more-projects` is a permanent (308) redirect to https://bookchaowalit.com/ (`next.config.ts`); the footer links there too.
+- `lib/site.ts` + `app/robots.ts` + `app/sitemap.ts`: canonical origin https://ab-testing.bookchaowalit.com (override with `NEXT_PUBLIC_SITE_URL`).
+- `app/dashboard-shell.css`, `components/dashboard-shell.tsx`, `components/dashboard-chart.tsx`: the shared Dashboard shell, copied in (see `DASHBOARD.md`).

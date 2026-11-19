@@ -44,9 +44,17 @@ export function totals(variants: Variant[]) {
   return { views, conversions, rate: views ? (conversions / views) * 100 : 0 };
 }
 
+/**
+ * The variant with the best conversion rate, or undefined when there is no honest answer yet: no conversions
+ * at all, or two variants share the best rate (a tie). conversionRate() is 0 for a variant with no views,
+ * so the comparison never sees NaN.
+ */
 export function pickLeader(variants: Variant[]): Variant | undefined {
-  // conversionRate() is 0 for a variant with no views, so the comparison never sees NaN.
-  return [...variants].sort((a, b) => conversionRate(b) - conversionRate(a))[0];
+  const ranked = [...variants].sort((a, b) => conversionRate(b) - conversionRate(a));
+  const [first, second] = ranked;
+  if (!first || conversionRate(first) === 0) return undefined;
+  if (second && conversionRate(second) === conversionRate(first)) return undefined;
+  return first;
 }
 
 export function simulate(variants: Variant[], rounds: number, random: () => number = Math.random): Variant[] {

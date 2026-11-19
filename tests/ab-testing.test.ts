@@ -40,6 +40,12 @@ describe("pickLeader", () => {
   it("returns undefined for an empty list", () => {
     expect(pickLeader([])).toBeUndefined();
   });
+
+  it("names no leader before any conversion or when the best rate is tied", () => {
+    expect(pickLeader([v("a", 50, 0, 0), v("b", 50, 0, 0)])).toBeUndefined();
+    expect(pickLeader([v("a", 50, 0, 30), v("b", 50, 0, 10)])).toBeUndefined();
+    expect(pickLeader([v("a", 50, 2, 20), v("b", 50, 1, 10), v("c", 50, 0, 5)])).toBeUndefined();
+  });
 });
 
 describe("simulate", () => {
