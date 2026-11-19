@@ -233,6 +233,18 @@ describe("dashboard shell", () => {
     expect(css).toContain(".ds-chart-switch:not([open]) .ds-show-chart, .ds-chart-switch[open] .ds-show-table { display: none; }");
   });
 
+  it("centres each y label on its grid line at any text size, with no fixed pixel offset", () => {
+    const css = readFileSync(join(process.cwd(), "app/dashboard-shell.css"), "utf8");
+    const axis = css.match(/\.ds-chart-y \{[^}]*\}/)?.[0] ?? "";
+    // A fixed margin (-7px) no longer matches the label once the text is enlarged, so the axis has none.
+    expect(axis).toContain("justify-content: space-between;");
+    expect(axis).not.toMatch(/margin/);
+    // Zero-height rows land on 0%, 25% ... 100%, and each label's text is centred on its row.
+    expect(css).toContain(".ds-chart-y span { display: flex; align-items: center; justify-content: flex-end; height: 0; min-height: 0; white-space: nowrap; }");
+    render(<ChartPanel title="Load" summary="s" values={[1, 3]} labels={["a", "b"]} ticks={[0, 1]} max={4} unit="kWh" labelHeading="Hour" />);
+    expect(host.querySelectorAll(".ds-chart-y span")).toHaveLength(5);
+  });
+
   it("measures the sticky bar into --ds-top-height, so focused controls scroll clear of it when it wraps", () => {
     render(<DashTop name="Name" tagline="Tagline" />);
     const script = host.querySelector(".ds-top > script");

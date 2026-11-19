@@ -38,7 +38,36 @@ export default function Home() {
           <Stat label="Current lead" value={leader ? shortName(leader.name) : "—"} note={leader ? `${conversionRate(leader).toFixed(1)}% rate` : tied ? "tied, no leader yet" : "not enough data yet"} />
         </ul>
 
-        <div className="ds-grid">
+        <div className="ds-grid ds-grid-narrow-first">
+          {/* Traffic comes first in the DOM, so it leads on phones and Tab reaches Simulate before the variant sliders;
+              ds-grid-narrow-first keeps it in the narrow column on wide screens. No CSS order: Tab order matches the screen. */}
+          <section className="ds-panel ab-traffic" aria-labelledby="traffic-heading">
+            <div className="ds-panel-head">
+              <div>
+                <h2 id="traffic-heading">Traffic</h2>
+                <p>Each visit picks a variant by its weight</p>
+              </div>
+            </div>
+            <div className="ds-actions">
+              <button type="button" className="ds-button" onClick={() => store.update((current) => simulate(current, 1))}>Simulate one visit</button>
+              <button type="button" className="ds-plain" onClick={() => store.update((current) => simulate(current, 50))}>Run 50 visits</button>
+              <button type="button" className="ds-plain" onClick={() => store.set(SEED)}>Reset to sample</button>
+            </div>
+            <div className="ds-callout" aria-live="polite">
+              {leader ? (
+                <>
+                  <strong>{shortName(leader.name)} leads for now</strong>
+                  <span>{conversionRate(leader).toFixed(1)}% against {totals.rate.toFixed(1)}% overall. The useful question is not who won yet, but what would make this result trustworthy.</span>
+                </>
+              ) : (
+                <>
+                  <strong>No leader yet</strong>
+                  <span>{tied ? "The best rate is shared, so no variant leads." : "No conversions yet. Add a conversion to a variant to compare rates."}</span>
+                </>
+              )}
+            </div>
+          </section>
+
           <section className="ds-panel" aria-labelledby="variants-heading">
             <div className="ds-panel-head">
               <div>
@@ -68,33 +97,6 @@ export default function Home() {
                 );
               })}
             </ul>
-          </section>
-
-          <section className="ds-panel ab-traffic" aria-labelledby="traffic-heading">
-            <div className="ds-panel-head">
-              <div>
-                <h2 id="traffic-heading">Traffic</h2>
-                <p>Each visit picks a variant by its weight</p>
-              </div>
-            </div>
-            <div className="ds-actions">
-              <button type="button" className="ds-button" onClick={() => store.update((current) => simulate(current, 1))}>Simulate one visit</button>
-              <button type="button" className="ds-plain" onClick={() => store.update((current) => simulate(current, 50))}>Run 50 visits</button>
-              <button type="button" className="ds-plain" onClick={() => store.set(SEED)}>Reset to sample</button>
-            </div>
-            <div className="ds-callout" aria-live="polite">
-              {leader ? (
-                <>
-                  <strong>{shortName(leader.name)} leads for now</strong>
-                  <span>{conversionRate(leader).toFixed(1)}% against {totals.rate.toFixed(1)}% overall. The useful question is not who won yet, but what would make this result trustworthy.</span>
-                </>
-              ) : (
-                <>
-                  <strong>No leader yet</strong>
-                  <span>{tied ? "The best rate is shared, so no variant leads." : "No conversions yet. Add a conversion to a variant to compare rates."}</span>
-                </>
-              )}
-            </div>
           </section>
         </div>
 

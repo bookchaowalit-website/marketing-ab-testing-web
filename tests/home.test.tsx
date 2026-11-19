@@ -74,6 +74,19 @@ describe("A/B bench", () => {
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]")).toEqual(SEED);
   });
 
+  it("puts the traffic panel first in the DOM, so Tab order matches the phone layout without CSS order", async () => {
+    mount();
+    const grid = $(".ds-grid");
+    expect(grid?.classList.contains("ds-grid-narrow-first")).toBe(true);
+    const panels = [...(grid?.children ?? [])].map((panel) => panel.getAttribute("aria-labelledby"));
+    expect(panels).toEqual(["traffic-heading", "variants-heading"]);
+    // Simulate is reached before any variant slider when tabbing.
+    const focusables = [...host.querySelectorAll("button, input")];
+    expect(focusables.indexOf(button("Simulate one visit"))).toBeLessThan(focusables.indexOf(host.querySelector(".ab-weight input")!));
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("app/globals.css", "utf8")).not.toMatch(/\border:/);
+  });
+
   it("names no leader before any conversion", () => {
     save(SEED.map((variant) => ({ ...variant, conversions: 0, views: 0 })));
     mount();

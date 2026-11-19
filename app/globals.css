@@ -9,8 +9,6 @@ html, body { margin: 0; background: var(--ds-bg); }
 .ab-variant + .ab-variant { border-top: 1px solid var(--ds-line); border-radius: 0; }
 .ab-controls { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: end; gap: 4px 16px; margin-top: 4px; }
 .ab-weight { flex: 1 1 220px; }
-/* One column: the traffic buttons come before the variant list so Simulate stays in reach on phones. */
-@media (max-width: 899px) { .ab-traffic { order: -1; } }
 /* Four tiles: two by two on tablets instead of three and an orphan. */
 @media (min-width: 561px) and (max-width: 899px) {
   .ds-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
