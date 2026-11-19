@@ -199,14 +199,14 @@ describe("dashboard shell", () => {
   it("names the peak above the plot and prints the y unit only when given", () => {
     render(<ChartPanel title="Load" summary="s" values={[1, 3, 2]} labels={["00:00", "01:00", "02:00"]} ticks={[0, 2]} max={4} unit="kWh" labelHeading="Hour" yUnit="kWh" />);
     expect(host.querySelector(".ds-chart-unit")?.textContent).toBe("kWh");
-    const peak = host.querySelector<HTMLElement>(".ds-chart-peak-row span");
-    // margin-left X% and translateX(-X%): over the peak, never past the plot's edges.
-    expect([peak?.textContent, peak?.style.marginLeft, peak?.style.transform]).toEqual(["Peak 3 kWh · 01:00", "50%", "translateX(-50%)"]);
+    const row = () => host.querySelector<HTMLElement>(".ds-chart-peak-row");
+    // --ds-peak-at is the peak's share of the axis; the spacers place the label from it (no margin or transform).
+    expect([row()?.querySelector("span")?.textContent, row()?.style.getPropertyValue("--ds-peak-at"), row()?.querySelector("span")?.getAttribute("style")]).toEqual(["Peak 3 kWh · 01:00", "0.5", null]);
     render(<ChartPanel title="Load" summary="s" values={[5, 1, 1, 1, 1, 1, 1, 1]} labels={["a", "b", "c", "d", "e", "f", "g", "h"]} ticks={[0, 7]} max={5} unit="Clicks" labelHeading="x" />);
     expect(host.querySelector(".ds-chart-unit")).toBeNull();
-    expect([host.querySelector(".ds-chart-peak-row span")?.textContent, host.querySelector<HTMLElement>(".ds-chart-peak-row span")?.style.transform]).toEqual(["Peak 5 · a", "translateX(-0%)"]);
+    expect([row()?.querySelector("span")?.textContent, row()?.style.getPropertyValue("--ds-peak-at")]).toEqual(["Peak 5 · a", "0"]);
     render(<ChartPanel title="Load" summary="s" values={[1, 1, 1, 1, 1, 1, 1, 9]} labels={["a", "b", "c", "d", "e", "f", "g", "h"]} ticks={[0, 7]} max={9} unit="x" labelHeading="x" />);
-    expect(host.querySelector<HTMLElement>(".ds-chart-peak-row span")?.style.transform).toBe("translateX(-100%)");
+    expect(row()?.style.getPropertyValue("--ds-peak-at")).toBe("1");
     render(<ChartPanel title="Empty" summary="s" values={[]} labels={[]} ticks={[]} max={0} unit="x" labelHeading="x" />);
     expect(host.querySelector(".ds-chart-peak-row span")).toBeNull();
   });
@@ -217,20 +217,42 @@ describe("dashboard shell", () => {
     expect(css).toContain('.ds-dot[data-tone="amber"], .ds-meter[data-tone="amber"] span { background: var(--ds-amber); }');
     expect(css).toContain('.ds-dot[data-tone="red"], .ds-meter[data-tone="red"] span { background: var(--ds-red); }');
     expect(css).not.toMatch(/#e0a100|#34c759|#ff3b30/);
-    expect(css).toContain('.ds-row[aria-pressed="true"] .ds-meter { background: var(--ds-meter-track-selected); }');
+    expect(css).toContain('.ds-row[aria-pressed="true"] .ds-meter { background: var(--ds-meter-track-selected); box-shadow: inset 0 0 0 1px var(--ds-field-line); }');
+    // Light selected track is white, so the blue bar keeps 4.7:1 against it (the old #c7c7cc track was 2.8:1).
+    expect(css).toContain("--ds-meter-track-selected: #ffffff;");
     expect(css).toMatch(/\.ds-top \{[^}]*flex-wrap: wrap;/);
     expect(css).toMatch(/\.ds-stat-value \{[^}]*overflow-wrap: anywhere;/);
     // No visual reordering (Tab order must match the screen): a narrow-first grid instead.
     expect(css).not.toMatch(/\border:/);
     expect(css).toContain(".ds-grid-narrow-first { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); }");
     // The peak label wraps with large text instead of being cut; footer links are at least 44 by 44.
-    expect(css).toContain(".ds-chart-peak-row span { display: block; width: max-content; max-width: 100%; }");
+    expect(css).toContain(".ds-chart-peak-row span { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }");
     expect(css).toMatch(/\.ds-foot a \{[^}]*min-width: 44px; min-height: 44px;/);
     // Scroll padding follows the measured bar height (it grows when the bar wraps).
     expect(css).toContain("html { scroll-padding-top: calc(var(--ds-top-height, 52px) + 12px);");
     // Phones keep the unit/peak row above the shorter plot.
     expect(css).toContain(".ds-chart { grid-template-rows: auto 200px auto; }");
     expect(css).toContain(".ds-chart-switch:not([open]) .ds-show-chart, .ds-chart-switch[open] .ds-show-table { display: none; }");
+  });
+
+  it("places the peak label with flex spacers, so its box never runs past the plot (no sideways scroll)", () => {
+    const css = readFileSync(join(process.cwd(), "app/dashboard-shell.css"), "utf8");
+    expect(css).toMatch(/\.ds-chart-peak-row \{[^}]*display: flex;/);
+    expect(css).toContain('.ds-chart-peak-row::before { content: ""; flex: var(--ds-peak-at, 0) 1 0; }');
+    expect(css).toContain('.ds-chart-peak-row::after { content: ""; flex: calc(1 - var(--ds-peak-at, 0)) 1 0; }');
+    expect(css).not.toMatch(/translateX\(-\$\{|margin-left: X%/);
+    render(<ChartPanel title="Load" summary="s" values={[1, 2, 9]} labels={["a", "b", "c"]} ticks={[0, 2]} max={9} unit="x" labelHeading="x" buckets />);
+    // Buckets: the last value sits at the centre of its bucket, 5/6 of the axis.
+    expect(host.querySelector<HTMLElement>(".ds-chart-peak-row")?.style.getPropertyValue("--ds-peak-at")).toBe("0.8333");
+  });
+
+  it("keeps share bars readable in forced colors: an outlined Canvas track with a CanvasText fill", () => {
+    const css = readFileSync(join(process.cwd(), "app/dashboard-shell.css"), "utf8");
+    const forced = css.indexOf("@media (forced-colors: active) {");
+    const block = css.slice(forced, css.indexOf("\n}", forced));
+    expect(block).toContain(".ds-meter, .ds-meter span { forced-color-adjust: none; }");
+    expect(block).toContain('.ds-meter, .ds-row[aria-pressed="true"] .ds-meter { background: Canvas; box-shadow: none; outline: 1px solid CanvasText; }');
+    expect(block).toContain(".ds-meter span, .ds-meter[data-tone] span { background: CanvasText; }");
   });
 
   it("centres each y label on its grid line at any text size, with no fixed pixel offset", () => {

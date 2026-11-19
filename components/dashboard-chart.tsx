@@ -118,8 +118,8 @@ export function ChartPanel({ title, subtitle, summary, values, labels, ticks, ti
   const wide = labelRoom(unique.map(({ at }) => at), MIN_ROOM).map(({ index, room }) => ({ ...unique[index], room }));
   const phone = new Map(labelRoom(wide.map(({ at }) => at), MIN_ROOM_PHONE).map(({ index, room }) => [index, room]));
   // The peak is named above the plot, over its dashed line, so the line is never the only sign of it.
-  // Shifted left by the same share of its own width, so it sits over the peak and never past either edge of the plot.
-  const peakAt = peak >= 0 ? percent(pointAt(peak, values.length, buckets)) : "0%";
+  // --ds-peak-at splits the room beside it in the peak's ratio, so it sits over the peak and never past either edge of the plot.
+  const peakAt = peak >= 0 ? Number(pointAt(peak, values.length, buckets).toFixed(4)) : 0;
   return (
     <section className="ds-panel ds-chart-panel" aria-labelledby={headingId}>
       <div className="ds-panel-head">
@@ -147,8 +147,8 @@ export function ChartPanel({ title, subtitle, summary, values, labels, ticks, ti
       </div>
       <div className="ds-chart">
         {yUnit ? <div className="ds-chart-unit" aria-hidden="true">{yUnit}</div> : null}
-        <div className="ds-chart-peak-row" aria-hidden="true">
-          {peak >= 0 ? <span style={{ marginLeft: peakAt, transform: `translateX(-${peakAt})` }}>Peak {values[peak]}{yUnit ? ` ${yUnit}` : ""} · {labels[peak]}</span> : null}
+        <div className="ds-chart-peak-row" aria-hidden="true" style={{ "--ds-peak-at": peakAt } as CSSProperties}>
+          {peak >= 0 ? <span>Peak {values[peak]}{yUnit ? ` ${yUnit}` : ""} · {labels[peak]}</span> : null}
         </div>
         <div className="ds-chart-y" aria-hidden="true">{steps.map((step, index) => <span key={index}>{step}</span>)}</div>
         <svg viewBox="0 0 1000 100" preserveAspectRatio="none" role="img" aria-label={summary}>
