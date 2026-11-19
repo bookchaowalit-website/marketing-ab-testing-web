@@ -7,9 +7,17 @@ import type { ReactNode } from "react";
 
 export type Tone = "green" | "amber" | "grey" | "red";
 
+/**
+ * Keeps --ds-top-height on :root equal to the sticky bar's height (it grows when the bar wraps with large text), so
+ * html's scroll-padding-top keeps focused controls clear of it. A plain inline script in the server HTML, so DashTop
+ * stays server-safe; it writes a constructed stylesheet, not an attribute React hydrates.
+ */
+export const TOP_HEIGHT_SCRIPT = `(function(){var bar=document.currentScript&&document.currentScript.parentElement;if(!bar||!window.ResizeObserver||!document.adoptedStyleSheets||typeof CSSStyleSheet!=="function")return;var sheet=new CSSStyleSheet();try{sheet.replaceSync("");}catch(e){return;}document.adoptedStyleSheets=document.adoptedStyleSheets.concat(sheet);new ResizeObserver(function(){sheet.replaceSync(":root{--ds-top-height:"+Math.ceil(bar.getBoundingClientRect().height)+"px}");}).observe(bar);})();`;
+
 export function DashTop({ name, tagline }: { name: string; tagline: string }) {
   return (
     <header className="ds-top">
+      <script dangerouslySetInnerHTML={{ __html: TOP_HEIGHT_SCRIPT }} />
       <div className="ds-brand">{name}<small>{tagline}</small></div>
       <nav aria-label="Site">
         <a href="https://bookchaowalit.com/">Bookchaowalit</a>

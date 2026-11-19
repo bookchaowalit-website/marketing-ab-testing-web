@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ChartPanel, DashFoot, DashTop, Pill, Segmented, Stat, axisSteps, chartTop, labelRoom, linePoints } from "@/components/dashboard-shell";
+import { ChartPanel, DashFoot, DashTop, Pill, Segmented, Stat, TOP_HEIGHT_SCRIPT, axisSteps, chartTop, labelRoom, linePoints } from "@/components/dashboard-shell";
 
 // Tests for the copied-in Dashboard shell itself, so every app that copies it covers all of it.
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -200,12 +200,13 @@ describe("dashboard shell", () => {
     render(<ChartPanel title="Load" summary="s" values={[1, 3, 2]} labels={["00:00", "01:00", "02:00"]} ticks={[0, 2]} max={4} unit="kWh" labelHeading="Hour" yUnit="kWh" />);
     expect(host.querySelector(".ds-chart-unit")?.textContent).toBe("kWh");
     const peak = host.querySelector<HTMLElement>(".ds-chart-peak-row span");
-    expect([peak?.textContent, peak?.style.left, peak?.dataset.edge]).toEqual(["Peak 3 kWh · 01:00", "50%", undefined]);
+    // left X% and translateX(-X%): over the peak, never past the plot's edges.
+    expect([peak?.textContent, peak?.style.left, peak?.style.transform]).toEqual(["Peak 3 kWh · 01:00", "50%", "translateX(-50%)"]);
     render(<ChartPanel title="Load" summary="s" values={[5, 1, 1, 1, 1, 1, 1, 1]} labels={["a", "b", "c", "d", "e", "f", "g", "h"]} ticks={[0, 7]} max={5} unit="Clicks" labelHeading="x" />);
     expect(host.querySelector(".ds-chart-unit")).toBeNull();
-    expect([host.querySelector(".ds-chart-peak-row span")?.textContent, host.querySelector<HTMLElement>(".ds-chart-peak-row span")?.dataset.edge]).toEqual(["Peak 5 · a", "start"]);
+    expect([host.querySelector(".ds-chart-peak-row span")?.textContent, host.querySelector<HTMLElement>(".ds-chart-peak-row span")?.style.transform]).toEqual(["Peak 5 · a", "translateX(-0%)"]);
     render(<ChartPanel title="Load" summary="s" values={[1, 1, 1, 1, 1, 1, 1, 9]} labels={["a", "b", "c", "d", "e", "f", "g", "h"]} ticks={[0, 7]} max={9} unit="x" labelHeading="x" />);
-    expect(host.querySelector<HTMLElement>(".ds-chart-peak-row span")?.dataset.edge).toBe("end");
+    expect(host.querySelector<HTMLElement>(".ds-chart-peak-row span")?.style.transform).toBe("translateX(-100%)");
     render(<ChartPanel title="Empty" summary="s" values={[]} labels={[]} ticks={[]} max={0} unit="x" labelHeading="x" />);
     expect(host.querySelector(".ds-chart-peak-row span")).toBeNull();
   });
@@ -220,9 +221,31 @@ describe("dashboard shell", () => {
     expect(css).toMatch(/\.ds-top \{[^}]*flex-wrap: wrap;/);
     expect(css).toMatch(/\.ds-stat-value \{[^}]*overflow-wrap: anywhere;/);
     expect(css).toContain(".ds-grid > .ds-phone-first { order: -1; }");
+    // Scroll padding follows the measured bar height (it grows when the bar wraps).
+    expect(css).toContain("html { scroll-padding-top: calc(var(--ds-top-height, 52px) + 12px);");
     // Phones keep the unit/peak row above the shorter plot.
     expect(css).toContain(".ds-chart { grid-template-rows: auto 200px auto; }");
     expect(css).toContain(".ds-chart-switch:not([open]) .ds-show-chart, .ds-chart-switch[open] .ds-show-table { display: none; }");
+  });
+
+  it("measures the sticky bar into --ds-top-height, so focused controls scroll clear of it when it wraps", () => {
+    render(<DashTop name="Name" tagline="Tagline" />);
+    const script = host.querySelector(".ds-top > script");
+    expect(script?.textContent).toBe(TOP_HEIGHT_SCRIPT);
+    // Run the script against a header in a fake document with ResizeObserver and constructed sheets.
+    let observed: (() => void) | undefined;
+    const sheets: { text: string }[] = [];
+    class Sheet { text = ""; replaceSync(text: string) { this.text = text; } }
+    const bar = { getBoundingClientRect: () => ({ height: 103.2 }) };
+    const fakeDocument = { currentScript: { parentElement: bar }, get adoptedStyleSheets() { return sheets; }, set adoptedStyleSheets(next: { text: string }[]) { sheets.splice(0, sheets.length, ...next); } };
+    const fakeWindow = { ResizeObserver: class { constructor(callback: () => void) { observed = callback; } observe() {} } };
+    new Function("document", "window", "ResizeObserver", "CSSStyleSheet", TOP_HEIGHT_SCRIPT)(fakeDocument, fakeWindow, fakeWindow.ResizeObserver, Sheet);
+    observed?.();
+    expect(sheets.map((sheet) => sheet.text)).toEqual([":root{--ds-top-height:104px}"]);
+    // Without ResizeObserver it does nothing (the CSS falls back to 64px).
+    const none: { text: string }[] = [];
+    new Function("document", "window", "ResizeObserver", "CSSStyleSheet", TOP_HEIGHT_SCRIPT)({ currentScript: { parentElement: bar }, adoptedStyleSheets: none }, {}, undefined, Sheet);
+    expect(none).toEqual([]);
   });
 
   it("maps values onto a 1000 x 100 board, clamped, with a safe max", () => {
