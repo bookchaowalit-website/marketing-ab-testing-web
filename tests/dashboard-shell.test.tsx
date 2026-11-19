@@ -246,6 +246,15 @@ describe("dashboard shell", () => {
     expect(host.querySelector<HTMLElement>(".ds-chart-peak-row")?.style.getPropertyValue("--ds-peak-at")).toBe("0.8333");
   });
 
+  it("pins the last x label to the right edge instead of pushing it past the axis and pulling it back", () => {
+    const css = readFileSync(join(process.cwd(), "app/dashboard-shell.css"), "utf8");
+    expect(css).toContain('.ds-chart-x span[data-edge="end"] { right: 0; left: auto !important; transform: none; }');
+    expect(css).toContain('.ds-chart-x span[data-edge="start"] { transform: none; }');
+    expect(css).not.toContain("translateX(-100%)");
+    render(<ChartPanel title="Load" summary="s" values={[1, 2, 3]} labels={["a", "b", "c"]} ticks={[0, 2]} max={3} unit="x" labelHeading="x" />);
+    expect([...host.querySelectorAll<HTMLElement>(".ds-chart-x span")].map((span) => [span.dataset.edge, span.style.left])).toEqual([["start", "0%"], ["end", "100%"]]);
+  });
+
   it("keeps share bars readable in forced colors: an outlined Canvas track with a CanvasText fill", () => {
     const css = readFileSync(join(process.cwd(), "app/dashboard-shell.css"), "utf8");
     const forced = css.indexOf("@media (forced-colors: active) {");
