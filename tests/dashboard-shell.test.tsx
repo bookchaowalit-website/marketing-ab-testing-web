@@ -255,6 +255,15 @@ describe("dashboard shell", () => {
     expect([...host.querySelectorAll<HTMLElement>(".ds-chart-x span")].map((span) => [span.dataset.edge, span.style.left])).toEqual([["start", "0%"], ["end", "100%"]]);
   });
 
+  it("marks the selected period with a 3:1 ring, and with Highlight plus a border in forced colors", () => {
+    const css = readFileSync(join(process.cwd(), "app/dashboard-shell.css"), "utf8");
+    expect(css).toMatch(/\.ds-segmented button\[aria-pressed="true"\] \{[^}]*box-shadow: inset 0 0 0 2px var\(--ds-fg\)/);
+    const forced = css.indexOf("@media (forced-colors: active) {");
+    const block = css.slice(forced, css.indexOf("\n}", forced));
+    expect(block).toContain(".ds-segmented button { border: 1px solid ButtonText; }");
+    expect(block).toMatch(/\.ds-segmented button\[aria-pressed="true"\] \{[^}]*background: Highlight; color: HighlightText; border: 2px solid Highlight;/);
+  });
+
   it("keeps share bars readable in forced colors: an outlined Canvas track with a CanvasText fill", () => {
     const css = readFileSync(join(process.cwd(), "app/dashboard-shell.css"), "utf8");
     const forced = css.indexOf("@media (forced-colors: active) {");

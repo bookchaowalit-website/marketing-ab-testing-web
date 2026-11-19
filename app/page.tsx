@@ -16,6 +16,7 @@ export default function Home() {
   const totals = sumTotals(variants);
   const leader = pickLeader(variants);
   const best = Math.max(0, ...variants.map(conversionRate));
+  const ofBest = (rate: number) => (best ? Math.round((rate / best) * 100) : 0);
   const tied = !leader && totals.conversions > 0;
 
   return (
@@ -85,13 +86,15 @@ export default function Home() {
                     <span className="ds-row-name">{title}</span>
                     <span className="ds-row-detail">{angle ? `${angle} · ` : ""}{variant.views} exposures · {variant.conversions} conversions</span>
                     <span className="ds-row-value">{rate.toFixed(1)}%</span>
-                    <span className="ds-meter" aria-hidden="true"><span style={{ width: `${best ? Math.round((rate / best) * 100) : 0}%` }} /></span>
+                    <span className="ds-meter" aria-hidden="true"><span style={{ width: `${ofBest(rate)}%` }} /></span>
+                    {/* The bar is hidden from assistive tech; this says what it shows. */}
+                    <span className="ds-sr">{best ? `${ofBest(rate)}% of the best variant's rate.` : "No rate to compare yet."}</span>
                     <div className="ab-controls">
                       <label className="ds-field ab-weight">
                         <span className="ds-field-row"><span>Traffic weight</span><b>{variant.weight}</b></span>
                         <input className="ds-range" aria-label={`${title} traffic weight`} type="range" min="1" max="98" value={variant.weight} onChange={(event) => store.update((current) => setWeight(current, variant.id, Number(event.target.value)))} />
                       </label>
-                      <button type="button" className="ds-plain" aria-label={`Add a conversion to ${title}`} onClick={() => store.update((current) => addConversion(current, variant.id))}>Add conversion</button>
+                      <button type="button" className="ds-plain" aria-label={`Add conversion to ${title}`} onClick={() => store.update((current) => addConversion(current, variant.id))}>Add conversion</button>
                     </div>
                   </li>
                 );

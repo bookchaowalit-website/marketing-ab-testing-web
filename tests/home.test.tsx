@@ -49,7 +49,7 @@ describe("A/B bench", () => {
 
   it("adds a conversion, changes a weight and flags an allocation that is not 100%", () => {
     mount();
-    press(button("Add a conversion to Proof"));
+    press(button("Add conversion to Proof"));
     expect(stats()[1]).toBe("Conversions41added by hand");
     const slider = host.querySelector('input[aria-label="Control traffic weight"]') as HTMLInputElement;
     act(() => {
@@ -85,6 +85,17 @@ describe("A/B bench", () => {
     expect(focusables.indexOf(button("Simulate one visit"))).toBeLessThan(focusables.indexOf(host.querySelector(".ab-weight input")!));
     const { readFileSync } = await import("node:fs");
     expect(readFileSync("app/globals.css", "utf8")).not.toMatch(/\border:/);
+  });
+
+  it("names each Add conversion button after its visible text and states each rate against the best", () => {
+    mount();
+    const adds = [...host.querySelectorAll<HTMLButtonElement>(".ab-controls button")];
+    for (const add of adds) expect(add.getAttribute("aria-label")).toMatch(/^Add conversion to /);
+    const words = [...host.querySelectorAll(".ab-variant .ds-sr")].map((el) => el.textContent);
+    expect(adds).toHaveLength(3);
+    expect(words).toHaveLength(3);
+    expect(words).toEqual(["63% of the best variant's rate.", "100% of the best variant's rate.", "71% of the best variant's rate."]);
+    for (const text of words) expect(text).toMatch(/^\d+% of the best variant's rate\.$/);
   });
 
   it("names no leader before any conversion", () => {

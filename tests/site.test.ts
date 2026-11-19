@@ -25,6 +25,11 @@ describe("sitemap and robots", () => {
     expect(urls[0]).toBe("https://example.test");
     expect(urls.every((url) => url.startsWith("https://example.test"))).toBe(true);
   });
+  it("prefixes the robots rules with the base path when the app lives under a subpath", () => {
+    expect(buildRobots("https://example.test/app").rules).toEqual({ userAgent: "*", allow: "/app/", disallow: "/app/api/" });
+    expect(buildRobots("https://example.test").rules).toEqual({ userAgent: "*", allow: "/", disallow: "/api/" });
+  });
+
   it("points robots.txt at the same origin and keeps /api/ out of the index", () => {
     const robots = buildRobots("https://example.test");
     expect(robots.sitemap).toBe("https://example.test/sitemap.xml");

@@ -36,9 +36,11 @@ export function buildSitemap(base: string = SITE_URL): MetadataRoute.Sitemap {
   }));
 }
 
+/** Rules carry the base path (an app served under https://host/app keeps its API at /app/api/). */
 export function buildRobots(base: string = SITE_URL): MetadataRoute.Robots {
+  const path = new URL(base).pathname.replace(/\/+$/, "");
   return {
-    rules: { userAgent: "*", allow: "/", disallow: "/api/" },
+    rules: { userAgent: "*", allow: `${path}/`, disallow: `${path}/api/` },
     sitemap: `${base}/sitemap.xml`,
   };
 }
