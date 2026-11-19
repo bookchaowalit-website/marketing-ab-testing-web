@@ -88,6 +88,8 @@ type ChartProps = {
   unit: string;
   /** Column heading for the labels in the table view. */
   labelHeading: string;
+  /** Short unit printed above the y axis and after the peak value ("kWh", "clicks"); leave it out when the scale has no unit. */
+  yUnit?: string;
   /**
    * Each value counts one time bucket of equal length (clicks per 2 hours): points sit at bucket centres and `ticks`
    * are bucket edges, so pass `tickLabels` ("−7d", "now").
@@ -100,7 +102,7 @@ type ChartProps = {
  * The disclosure is a native <details> in the head, so the table opens without JavaScript and the switch sits in the
  * head's flex row at its own size; CSS (:has) shows the table and hides the chart while it is open.
  */
-export function ChartPanel({ title, subtitle, summary, values, labels, ticks, tickLabels, max, unit, labelHeading, buckets = false }: ChartProps) {
+export function ChartPanel({ title, subtitle, summary, values, labels, ticks, tickLabels, max, unit, labelHeading, yUnit, buckets = false }: ChartProps) {
   const headingId = useId();
   const points = linePoints(values, max, buckets);
   const dotY = points.split(",")[1];
@@ -115,6 +117,9 @@ export function ChartPanel({ title, subtitle, summary, values, labels, ticks, ti
     .sort((a, b) => a.at - b.at);
   const wide = labelRoom(unique.map(({ at }) => at), MIN_ROOM).map(({ index, room }) => ({ ...unique[index], room }));
   const phone = new Map(labelRoom(wide.map(({ at }) => at), MIN_ROOM_PHONE).map(({ index, room }) => [index, room]));
+  // The peak is named above the plot, over its dashed line, so the line is never the only sign of it.
+  const peakAt = peak >= 0 ? pointAt(peak, values.length, buckets) : 0;
+  const peakEdge = peakAt < 0.15 ? "start" : peakAt > 0.85 ? "end" : undefined;
   return (
     <section className="ds-panel ds-chart-panel" aria-labelledby={headingId}>
       <div className="ds-panel-head">
@@ -123,7 +128,8 @@ export function ChartPanel({ title, subtitle, summary, values, labels, ticks, ti
           {subtitle ? <p>{subtitle}</p> : null}
         </div>
         <details className="ds-chart-switch">
-          <summary className="ds-plain">Show table</summary>
+          {/* The summary says what it will show next; the hidden half is display:none, so it is not in the name. */}
+          <summary className="ds-plain"><span className="ds-show-table">Show table</span><span className="ds-show-chart">Show chart</span></summary>
         </details>
       </div>
       <div className="ds-table-wrap" tabIndex={0} role="region" aria-label={`${title} as a table`}>
@@ -140,6 +146,10 @@ export function ChartPanel({ title, subtitle, summary, values, labels, ticks, ti
         </table>
       </div>
       <div className="ds-chart">
+        {yUnit ? <div className="ds-chart-unit" aria-hidden="true">{yUnit}</div> : null}
+        <div className="ds-chart-peak-row" aria-hidden="true">
+          {peak >= 0 ? <span style={{ left: `${peakAt * 100}%` }} data-edge={peakEdge}>Peak {values[peak]}{yUnit ? ` ${yUnit}` : ""} · {labels[peak]}</span> : null}
+        </div>
         <div className="ds-chart-y" aria-hidden="true">{steps.map((step, index) => <span key={index}>{step}</span>)}</div>
         <svg viewBox="0 0 1000 100" preserveAspectRatio="none" role="img" aria-label={summary}>
           {/* One value has no line to draw or area to fill, so it gets a dot where it is. */}

@@ -37,7 +37,12 @@ describe("dashboard shell", () => {
     expect(host.querySelector(".ds-brand")?.textContent).toBe("NameTagline");
     expect(host.querySelector(".ds-pill")?.getAttribute("data-tone")).toBe("green");
     expect([...host.querySelectorAll(".ds-stat")].map((tile) => tile.textContent)).toEqual(["Peak9kWhat 13:00", "Plainx"]);
+    expect(host.querySelector(".ds-stat .ds-dot")).toBeNull();
     expect([...host.querySelectorAll(".ds-foot a")].map((a) => a.getAttribute("href"))).toContain("https://example.com/repo");
+    render(<ul><Stat label="Down" value={1} note="needs a look" tone="red" /></ul>);
+    const dot = host.querySelector(".ds-stat-label .ds-dot");
+    expect([dot?.getAttribute("data-tone"), dot?.getAttribute("aria-hidden")]).toEqual(["red", "true"]);
+    expect(host.querySelector(".ds-stat")?.textContent).toBe("Down1needs a look");
   });
 
   it("marks the pressed segment and reports the change", () => {
@@ -64,8 +69,9 @@ describe("dashboard shell", () => {
     expect(details.open).toBe(false);
     press(summary);
     expect(details.open).toBe(true);
-    // A disclosure, not a pressed button: the name stays "Show table" and the browser announces open or closed.
-    expect(summary.textContent).toBe("Show table");
+    // A disclosure, not a pressed button: the browser announces open or closed, and the summary holds both names,
+    // "Show table" for closed and "Show chart" for open; CSS shows the one that fits the state.
+    expect([...summary.children].map((span) => [span.className, span.textContent])).toEqual([["ds-show-table", "Show table"], ["ds-show-chart", "Show chart"]]);
     expect(host.querySelector("[aria-pressed]")).toBeNull();
     // The switch sits in the head's flex row, so it is sized by its text and wraps under the title when needed.
     expect(details.parentElement?.className).toBe("ds-panel-head");
@@ -78,7 +84,7 @@ describe("dashboard shell", () => {
 
   it("puts the table in the server HTML, so it opens without JavaScript", () => {
     const html = renderToStaticMarkup(<ChartPanel title="Load" summary="s" values={[1, 3]} labels={["00", "01"]} ticks={[0, 1]} max={4} unit="kWh" labelHeading="Hour" />);
-    expect(html).toMatch(/<div class="ds-panel-head">.*<details class="ds-chart-switch"><summary class="ds-plain">Show table<\/summary><\/details><\/div><div class="ds-table-wrap".*<table class="ds-table">.*<\/table><\/div><div class="ds-chart">/);
+    expect(html).toMatch(/<div class="ds-panel-head">.*<details class="ds-chart-switch"><summary class="ds-plain"><span class="ds-show-table">Show table<\/span><span class="ds-show-chart">Show chart<\/span><\/summary><\/details><\/div><div class="ds-table-wrap".*<table class="ds-table">.*<\/table><\/div><div class="ds-chart">/);
     expect(html).toContain("<td>3 (peak)</td>");
   });
 
@@ -188,6 +194,35 @@ describe("dashboard shell", () => {
     expect(block).toContain('.ds-row[aria-pressed="true"] { border-left: 3px solid Highlight; padding-left: 9px; }');
     // The area fill would turn into one solid forced colour over the grid, so forced colors leave it out.
     expect(block).toContain(".ds-chart-area { fill: none; }");
+  });
+
+  it("names the peak above the plot and prints the y unit only when given", () => {
+    render(<ChartPanel title="Load" summary="s" values={[1, 3, 2]} labels={["00:00", "01:00", "02:00"]} ticks={[0, 2]} max={4} unit="kWh" labelHeading="Hour" yUnit="kWh" />);
+    expect(host.querySelector(".ds-chart-unit")?.textContent).toBe("kWh");
+    const peak = host.querySelector<HTMLElement>(".ds-chart-peak-row span");
+    expect([peak?.textContent, peak?.style.left, peak?.dataset.edge]).toEqual(["Peak 3 kWh · 01:00", "50%", undefined]);
+    render(<ChartPanel title="Load" summary="s" values={[5, 1, 1, 1, 1, 1, 1, 1]} labels={["a", "b", "c", "d", "e", "f", "g", "h"]} ticks={[0, 7]} max={5} unit="Clicks" labelHeading="x" />);
+    expect(host.querySelector(".ds-chart-unit")).toBeNull();
+    expect([host.querySelector(".ds-chart-peak-row span")?.textContent, host.querySelector<HTMLElement>(".ds-chart-peak-row span")?.dataset.edge]).toEqual(["Peak 5 · a", "start"]);
+    render(<ChartPanel title="Load" summary="s" values={[1, 1, 1, 1, 1, 1, 1, 9]} labels={["a", "b", "c", "d", "e", "f", "g", "h"]} ticks={[0, 7]} max={9} unit="x" labelHeading="x" />);
+    expect(host.querySelector<HTMLElement>(".ds-chart-peak-row span")?.dataset.edge).toBe("end");
+    render(<ChartPanel title="Empty" summary="s" values={[]} labels={[]} ticks={[]} max={0} unit="x" labelHeading="x" />);
+    expect(host.querySelector(".ds-chart-peak-row span")).toBeNull();
+  });
+
+  it("styles tones, the selected-row track, the header wrap and the phone-first panel in the CSS", () => {
+    const css = readFileSync(join(process.cwd(), "app/dashboard-shell.css"), "utf8");
+    // A dot and its row's bar share one token colour, never a light hex under 3:1.
+    expect(css).toContain('.ds-dot[data-tone="amber"], .ds-meter[data-tone="amber"] span { background: var(--ds-amber); }');
+    expect(css).toContain('.ds-dot[data-tone="red"], .ds-meter[data-tone="red"] span { background: var(--ds-red); }');
+    expect(css).not.toMatch(/#e0a100|#34c759|#ff3b30/);
+    expect(css).toContain('.ds-row[aria-pressed="true"] .ds-meter { background: var(--ds-meter-track-selected); }');
+    expect(css).toMatch(/\.ds-top \{[^}]*flex-wrap: wrap;/);
+    expect(css).toMatch(/\.ds-stat-value \{[^}]*overflow-wrap: anywhere;/);
+    expect(css).toContain(".ds-grid > .ds-phone-first { order: -1; }");
+    // Phones keep the unit/peak row above the shorter plot.
+    expect(css).toContain(".ds-chart { grid-template-rows: auto 200px auto; }");
+    expect(css).toContain(".ds-chart-switch:not([open]) .ds-show-chart, .ds-chart-switch[open] .ds-show-table { display: none; }");
   });
 
   it("maps values onto a 1000 x 100 board, clamped, with a safe max", () => {

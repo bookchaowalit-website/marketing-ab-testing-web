@@ -44,10 +44,11 @@ export function Segmented<T extends string>({ label, options, value, onChange }:
   );
 }
 
-export function Stat({ label, value, unit, note }: { label: string; value: ReactNode; unit?: string; note?: ReactNode }) {
+/** A stat tile; `tone` puts a coloured dot by the label for a value that needs a look (say why in `note`, too). */
+export function Stat({ label, value, unit, note, tone }: { label: string; value: ReactNode; unit?: string; note?: ReactNode; tone?: Tone }) {
   return (
-    <li className="ds-stat">
-      <span className="ds-stat-label">{label}</span>
+    <li className="ds-stat" data-tone={tone}>
+      <span className="ds-stat-label">{tone ? <span className="ds-dot" data-tone={tone} aria-hidden="true" /> : null}{label}</span>
       <span className="ds-stat-value">{value}{unit ? <small>{unit}</small> : null}</span>
       {note ? <span className="ds-stat-note">{note}</span> : null}
     </li>
