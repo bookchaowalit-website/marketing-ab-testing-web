@@ -200,8 +200,8 @@ describe("dashboard shell", () => {
     render(<ChartPanel title="Load" summary="s" values={[1, 3, 2]} labels={["00:00", "01:00", "02:00"]} ticks={[0, 2]} max={4} unit="kWh" labelHeading="Hour" yUnit="kWh" />);
     expect(host.querySelector(".ds-chart-unit")?.textContent).toBe("kWh");
     const peak = host.querySelector<HTMLElement>(".ds-chart-peak-row span");
-    // left X% and translateX(-X%): over the peak, never past the plot's edges.
-    expect([peak?.textContent, peak?.style.left, peak?.style.transform]).toEqual(["Peak 3 kWh · 01:00", "50%", "translateX(-50%)"]);
+    // margin-left X% and translateX(-X%): over the peak, never past the plot's edges.
+    expect([peak?.textContent, peak?.style.marginLeft, peak?.style.transform]).toEqual(["Peak 3 kWh · 01:00", "50%", "translateX(-50%)"]);
     render(<ChartPanel title="Load" summary="s" values={[5, 1, 1, 1, 1, 1, 1, 1]} labels={["a", "b", "c", "d", "e", "f", "g", "h"]} ticks={[0, 7]} max={5} unit="Clicks" labelHeading="x" />);
     expect(host.querySelector(".ds-chart-unit")).toBeNull();
     expect([host.querySelector(".ds-chart-peak-row span")?.textContent, host.querySelector<HTMLElement>(".ds-chart-peak-row span")?.style.transform]).toEqual(["Peak 5 · a", "translateX(-0%)"]);
@@ -211,7 +211,7 @@ describe("dashboard shell", () => {
     expect(host.querySelector(".ds-chart-peak-row span")).toBeNull();
   });
 
-  it("styles tones, the selected-row track, the header wrap and the phone-first panel in the CSS", () => {
+  it("styles tones, the selected-row track, the header wrap and the panel order in the CSS", () => {
     const css = readFileSync(join(process.cwd(), "app/dashboard-shell.css"), "utf8");
     // A dot and its row's bar share one token colour, never a light hex under 3:1.
     expect(css).toContain('.ds-dot[data-tone="amber"], .ds-meter[data-tone="amber"] span { background: var(--ds-amber); }');
@@ -220,7 +220,12 @@ describe("dashboard shell", () => {
     expect(css).toContain('.ds-row[aria-pressed="true"] .ds-meter { background: var(--ds-meter-track-selected); }');
     expect(css).toMatch(/\.ds-top \{[^}]*flex-wrap: wrap;/);
     expect(css).toMatch(/\.ds-stat-value \{[^}]*overflow-wrap: anywhere;/);
-    expect(css).toContain(".ds-grid > .ds-phone-first { order: -1; }");
+    // No visual reordering (Tab order must match the screen): a narrow-first grid instead.
+    expect(css).not.toMatch(/\border:/);
+    expect(css).toContain(".ds-grid-narrow-first { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); }");
+    // The peak label wraps with large text instead of being cut; footer links are at least 44 by 44.
+    expect(css).toContain(".ds-chart-peak-row span { display: block; width: max-content; max-width: 100%; }");
+    expect(css).toMatch(/\.ds-foot a \{[^}]*min-width: 44px; min-height: 44px;/);
     // Scroll padding follows the measured bar height (it grows when the bar wraps).
     expect(css).toContain("html { scroll-padding-top: calc(var(--ds-top-height, 52px) + 12px);");
     // Phones keep the unit/peak row above the shorter plot.

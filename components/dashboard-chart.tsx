@@ -148,7 +148,7 @@ export function ChartPanel({ title, subtitle, summary, values, labels, ticks, ti
       <div className="ds-chart">
         {yUnit ? <div className="ds-chart-unit" aria-hidden="true">{yUnit}</div> : null}
         <div className="ds-chart-peak-row" aria-hidden="true">
-          {peak >= 0 ? <span style={{ left: peakAt, transform: `translateX(-${peakAt})` }}>Peak {values[peak]}{yUnit ? ` ${yUnit}` : ""} · {labels[peak]}</span> : null}
+          {peak >= 0 ? <span style={{ marginLeft: peakAt, transform: `translateX(-${peakAt})` }}>Peak {values[peak]}{yUnit ? ` ${yUnit}` : ""} · {labels[peak]}</span> : null}
         </div>
         <div className="ds-chart-y" aria-hidden="true">{steps.map((step, index) => <span key={index}>{step}</span>)}</div>
         <svg viewBox="0 0 1000 100" preserveAspectRatio="none" role="img" aria-label={summary}>
