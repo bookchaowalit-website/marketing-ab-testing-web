@@ -9,22 +9,24 @@ Last reviewed: 2026-11-28 · commit `3aa016f`
 ```mermaid
 flowchart TD
   PUSH["push or PR to main"] --> CI["GitHub Actions: shared ci-node + shared security scan"]
-  PUSH -.->|"Vercel Git link names the old repository, per PRODUCT.md"| LAG["live site lags main until a manual Vercel CLI deploy"]
-  LAG --> PAGE["GET / : first paint uses SEED (Control 42, Signal 33, Proof 25)"]
+  MAIN["push to main"] -.->|"PRODUCT.md 2026-10-23: Vercel Git link names the old repository, deploy by CLI; current state [ต้องยืนยัน]"| PROD["production may lag main (no Sentry, old MCP route as of 2026-10-23)"]
+  VISIT["visitor request (code on main at 3aa016f)"] --> PAGE["GET / : first paint uses SEED (Control 42, Signal 33, Proof 25)"]
   PAGE --> LOAD["useSyncExternalStore reads localStorage via createLocalStore, parseVariants"]
-  LOAD -->|"missing, corrupt or storage blocked"| SEEDKEEP["fall back to SEED, in-memory only"]
-  LOAD --> UI["stat tiles, variant rows with rates, allocation pill (warns if not 100)"]
+  LOAD -->|"missing, corrupt or storage blocked: fall back to SEED, UI still works"| UI["stat tiles, variant rows with rates, allocation pill (warns if not 100)"]
   UI --> W["weight slider: setWeight"]
   UI --> SIM["Simulate one visit or Run 50 visits: simulate picks a variant by weight with Math.random"]
   UI --> CONV["Add conversion on a variant: addConversion"]
   UI --> RESET["Reset to sample: store.set(SEED)"]
-  W --> SAVE["store.set writes JSON to localStorage"]
+  W --> SAVE["store.set: value kept in memory, then tries localStorage; if the write throws the edit lives in memory only and is lost on reload"]
   SIM --> SAVE
   CONV --> SAVE
   RESET --> SAVE
   SAVE --> UI
-  MCP["POST /api/mcp JSON-RPC: initialize, tools/list, tools/call"] --> TOOLS["get_seed_experiment, summarize, simulate (rounds 1 to 1000), nothing stored"]
-  TOOLS -->|"bad method, tool or arguments"| ERR["HTTP 400 with JSON-RPC error code"]
+  MCP["POST /api/mcp JSON-RPC"] -->|"initialize"| INIT["protocol info only, no tool runs"]
+  MCP -->|"tools/list"| LIST["tool list only, no tool runs"]
+  MCP -->|"tools/call"| TOOLS["get_seed_experiment, summarize, simulate (rounds 1 to 1000), nothing stored"]
+  MCP -->|"unknown method"| ERR["HTTP 400 with JSON-RPC error code"]
+  TOOLS -->|"bad tool or arguments"| ERR
   PAGE -.->|"runtime error, only if NEXT_PUBLIC_SENTRY_DSN set"| SENTRY["Sentry, errors only, scrubEvent strips request, user, query strings"]
 ```
 
