@@ -9,7 +9,7 @@ Last reviewed: 2026-11-28 · commit `3aa016f`
 ```mermaid
 flowchart TD
   PUSH["push or PR to main"] --> CI["GitHub Actions: shared ci-node + shared security scan"]
-  MAIN["push to main"] -.->|"PRODUCT.md 2026-10-23: Vercel Git link names the old repository, deploy by CLI; current state [ต้องยืนยัน]"| PROD["production may lag main (no Sentry, old MCP route as of 2026-10-23)"]
+  MAIN["push to main"] -->|"Vercel Git link, verified 2026-11-28 (separate from ci.yml, not gated by it)"| PROD["production = 3aa016f via Vercel Git; main is ahead only by docs/ commits"]
   VISIT["visitor request (code on main at 3aa016f)"] --> PAGE["GET / : first paint uses SEED (Control 42, Signal 33, Proof 25)"]
   PAGE --> LOAD["useSyncExternalStore reads localStorage via createLocalStore, parseVariants"]
   LOAD -->|"missing, corrupt or storage blocked: fall back to SEED, UI still works"| UI["stat tiles, variant rows with rates, allocation pill (warns if not 100)"]
@@ -32,7 +32,7 @@ flowchart TD
 
 Sources: `app/page.tsx`, `lib/ab-testing.ts`, `lib/local-store.ts`, `app/api/mcp/route.ts`, `lib/site.ts`, `lib/sentry.ts`, `next.config.ts`, `PRODUCT.md`
 
-ข้อเท็จจริงจากโค้ด: route `/api/mcp` มองไม่เห็นข้อมูลใน browser ของผู้เยี่ยมชม และไม่มี auth/rate limit ในโค้ด (เปิดสาธารณะ, stateless); ไม่มี significance test; ไม่มี analytics ใน `package.json`. [ต้องยืนยัน] สถานะ deploy ปัจจุบัน (PRODUCT.md บันทึกเมื่อ 2026-10-23).
+ข้อเท็จจริงจากโค้ด: route `/api/mcp` มองไม่เห็นข้อมูลใน browser ของผู้เยี่ยมชม และไม่มี auth/rate limit ในโค้ด (เปิดสาธารณะ, stateless); ไม่มี significance test; ไม่มี analytics ใน `package.json`. production = 3aa016f ผ่าน Vercel Git (ตรวจ 2026-11-28); main HEAD f63c4c5 นำหน้าเฉพาะ commit ใน docs/.
 
 ## To-Be (PRODUCT.md §Live URL and deploy state)
 
@@ -43,14 +43,14 @@ flowchart TD
   VERCEL --> PAGE["GET / and POST /api/mcp (same as As-Is)"]
 ```
 
-Sources: `PRODUCT.md` (owner action D9: reconnect Vercel Git to this repository)
+Sources: `PRODUCT.md` (owner action D9 done, verified 2026-11-28 via Vercel API)
 
 ## Gap
 
 | ID | As-Is → To-Be | Status | Owner | Evidence |
 |---|---|---|---|---|
-| G1 | Vercel Git link ชี้ repo เก่า, deploy ด้วย CLI → เชื่อมกับ repo นี้ให้ push to `main` deploy เอง | decide | owner | `PRODUCT.md` §Live URL and deploy state (owner action D9) |
+| G1 | Vercel Git link ชี้ repo เก่า, deploy ด้วย CLI → เชื่อมกับ repo นี้ให้ push to `main` deploy เอง | done | owner | `PRODUCT.md` §Live URL and deploy state (owner action D9); Vercel API 2026-11-28: project `bookchaowalit-ab-testing-frontend` Git link → `bookchaowalit-website/marketing-ab-testing-web`, production branch `main` |
 
 ## Open questions
 
-- production มี Sentry และ MCP route ปัจจุบันหรือยัง (PRODUCT.md บันทึกว่า live site ล้าหลัง `main` เมื่อ 2026-10-23)
+- ไม่มีคำถามค้างเรื่อง deploy: production = 3aa016f ผ่าน Vercel Git (ตรวจกับ Vercel API 2026-11-28) จึงมี Sentry และ MCP route ตามโค้ดบน `main`
